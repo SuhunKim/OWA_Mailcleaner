@@ -1,0 +1,19 @@
+<Window x:Class="OwaDesktopProbe.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" Title="OWA · 실제 EWS 읽기 전용 검증" Width="1200" Height="850">
+<DockPanel Margin="12">
+<StackPanel DockPanel.Dock="Top">
+<TextBlock Text="1. 앱 안에서 직접 로그인 → 2. 로그인 완료 확인 → 3. EWS 폴더 조회 → 4. 폴더 선택 후 메일 5건 조회" FontSize="16"/>
+<TextBlock Text="검증 중 OWA 메일을 직접 열지 마세요. 앱의 EWS 조회는 본문 열기·읽음 변경·읽음 확인 발송을 요청하지 않습니다." Margin="0,6"/>
+<WrapPanel>
+<CheckBox x:Name="Remember" Content="자동 로그인 시도 (전용 세션 보존)" VerticalAlignment="Center" Margin="4"/>
+<Button Content="OWA 로그인 / 재로그인" Click="Login" Margin="4" Padding="10,5"/>
+<Button Content="로그인 완료 확인" Click="ConfirmLogin" Margin="4" Padding="10,5"/>
+<Button x:Name="ProbeButton" Content="EWS 폴더 조회" Click="Probe" Margin="4" Padding="10,5" IsEnabled="False"/>
+<Button Content="로그아웃·전용 세션 정리" Click="ClearSession" Margin="4" Padding="10,5"/>
+</WrapPanel>
+<TextBlock x:Name="State" Text="OWA 미확인 | EWS 미확인 | 실제 데이터 미확인" TextWrapping="Wrap" Margin="0,6"/>
+<WrapPanel><ComboBox x:Name="Folders" Width="420" DisplayMemberPath="Name"/><Button x:Name="ItemsButton" Content="선택 폴더 메일 5건 조회" Click="Items" Margin="8,0" IsEnabled="False"/></WrapPanel>
+</StackPanel>
+<TextBox x:Name="Evidence" DockPanel.Dock="Bottom" Height="115" IsReadOnly="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Margin="0,6"/>
+<DataGrid x:Name="Messages" DockPanel.Dock="Bottom" Height="160" IsReadOnly="True" AutoGenerateColumns="True"/>
+<wv:WebView2 x:Name="Browser"/>
+</DockPanel></Window>

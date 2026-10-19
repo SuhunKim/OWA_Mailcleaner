@@ -1,0 +1,33 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:OwaMailCleaner.Controls">
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="Tokens.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <Style TargetType="{x:Type local:OwaButton}">
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Background" Value="{StaticResource OwaPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource OwaPrimaryBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="13,8" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value><ControlTemplate TargetType="{x:Type local:OwaButton}"><Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource OwaCornerRadius}"><ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" /></Border><ControlTemplate.Triggers><Trigger Property="Variant" Value="Secondary"><Setter Property="Background" Value="White"/><Setter Property="Foreground" Value="{StaticResource OwaPrimaryDarkBrush}"/><Setter Property="BorderBrush" Value="{StaticResource OwaSecondaryBorderBrush}"/></Trigger><Trigger Property="Variant" Value="Danger"><Setter Property="Background" Value="{StaticResource OwaDangerBrush}"/><Setter Property="BorderBrush" Value="{StaticResource OwaDangerBrush}"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Opacity" Value="0.88"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="border" Property="RenderTransform"><Setter.Value><TranslateTransform Y="1"/></Setter.Value></Setter></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="border" Property="Opacity" Value="0.48"/><Setter Property="Cursor" Value="Arrow"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="border" Property="BorderThickness" Value="2"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="{x:Type local:OwaRadioButton}">
+    <Setter Property="Foreground" Value="{StaticResource OwaTextBrush}"/><Setter Property="Background" Value="{StaticResource OwaSurfaceSubtleBrush}"/><Setter Property="BorderBrush" Value="{StaticResource OwaBorderBrush}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="12,7"/><Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type local:OwaRadioButton}"><Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="99"><StackPanel Orientation="Horizontal" Margin="{TemplateBinding Padding}"><Ellipse x:Name="dot" Width="12" Height="12" Stroke="{StaticResource OwaMutedBrush}" StrokeThickness="1.5" VerticalAlignment="Center" Margin="0,0,6,0"/><ContentPresenter VerticalAlignment="Center" /></StackPanel></Border><ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True"><Setter TargetName="border" Property="Background" Value="{StaticResource OwaPrimaryLightBrush}"/><Setter TargetName="border" Property="BorderBrush" Value="{StaticResource OwaPrimaryBrush}"/><Setter Property="Foreground" Value="{StaticResource OwaPrimaryDarkBrush}"/><Setter Property="FontWeight" Value="SemiBold"/><Setter TargetName="dot" Property="Fill" Value="{StaticResource OwaPrimaryBrush}"/><Setter TargetName="dot" Property="Stroke" Value="{StaticResource OwaPrimaryBrush}"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="border" Property="Opacity" Value="0.48"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="border" Property="BorderThickness" Value="2"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+  </Style>
+
+  <Style TargetType="{x:Type local:OwaSeparator}"><Setter Property="Background" Value="{StaticResource OwaBorderBrush}"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type local:OwaSeparator}"><Grid><Border x:Name="line" Background="{TemplateBinding Background}" Height="1"/></Grid><ControlTemplate.Triggers><Trigger Property="Orientation" Value="Vertical"><Setter TargetName="line" Property="Width" Value="1"/><Setter TargetName="line" Property="Height" Value="Auto"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+
+  <Style TargetType="{x:Type local:OwaDataGrid}" BasedOn="{StaticResource {x:Type DataGrid}}">
+    <Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="{StaticResource OwaBorderBrush}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="RowHeaderWidth" Value="0"/><Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="{StaticResource OwaBorderSubtleBrush}"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="CanUserResizeRows" Value="False"/><Setter Property="AutoGenerateColumns" Value="False"/>
+    <Setter Property="ColumnHeaderStyle"><Setter.Value><Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="{StaticResource OwaSurfaceSubtleBrush}"/><Setter Property="Foreground" Value="{StaticResource OwaMutedBrush}"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="10,9"/><Setter Property="BorderBrush" Value="{StaticResource OwaBorderSubtleBrush}"/></Style></Setter.Value></Setter>
+    <Setter Property="RowStyle"><Setter.Value><Style TargetType="DataGridRow"><Setter Property="MinHeight" Value="38"/><Setter Property="Background" Value="White"/><Setter Property="BorderThickness" Value="0"/><Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F7F9FC"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource OwaPrimaryLightBrush}"/></Trigger><DataTrigger Binding="{Binding IsErrorRow}" Value="True"><Setter Property="Background" Value="#FFF3F2"/></DataTrigger></Style.Triggers></Style></Setter.Value></Setter>
+  </Style>
+</ResourceDictionary>

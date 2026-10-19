@@ -1,0 +1,10 @@
+﻿
+.vs/
+bin/
+obj/
+_backup/
+.env
+.env.*
+!.env.example
+*.pst
+*.ost

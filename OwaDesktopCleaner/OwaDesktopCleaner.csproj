@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <PropertyGroup><ApplicationIcon>assets/owa-cleaner.ico</ApplicationIcon></PropertyGroup>
+  <ItemGroup><Resource Include="assets/icon-concepts-20261019/03-mail-tile-badge.png"><LogicalName>assets/window-icon.png</LogicalName></Resource></ItemGroup>
+  <ItemGroup><PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3537.50"/><None Update="cleaner.js" CopyToOutputDirectory="PreserveNewest"/></ItemGroup>
+</Project>

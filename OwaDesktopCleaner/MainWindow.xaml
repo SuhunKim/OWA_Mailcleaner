@@ -1,0 +1,21 @@
+<Window x:Class="OwaDesktopCleaner.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" Title="회사 메일 클리너" Icon="/OwaDesktopCleaner;component/assets/window-icon.png" Width="1280" Height="900" MinWidth="900" MinHeight="650" Background="#F5F7FA">
+<DockPanel Margin="12">
+<StackPanel DockPanel.Dock="Top">
+<TextBlock Text="회사 메일 클리너" FontSize="22" FontWeight="Bold" Margin="0,0,0,8"/>
+<WrapPanel>
+<Button x:Name="LoginButton" Content="OWA 로그인 / 재로그인" Click="Login" Padding="12,7" Margin="0,0,8,8"/>
+<Button x:Name="OpenButton" Content="로그인 완료 · 클리너 열기" Click="OpenCleaner" Padding="12,7" Margin="0,0,8,8"/>
+<Button x:Name="ClearButton" Content="로그아웃 · 세션 정리" Click="ClearSession" Padding="12,7" Margin="0,0,12,8"/>
+<Button x:Name="CredentialsButton" Content="EWS 로그인 정보" Click="ManageCredentials" Padding="12,7" Margin="0,0,8,8"/>
+<CheckBox x:Name="Remember" Content="OWA 로그인 기억 (저장 제안·세션 보존)" Click="RememberOwa" VerticalAlignment="Center" Margin="0,0,12,8"/>
+<CheckBox x:Name="EnableWrites" Content="변경 작업 허용" Click="ChangeWritePermission" VerticalAlignment="Center" Margin="0,0,0,8" IsEnabled="False"/>
+</WrapPanel>
+<ProgressBar x:Name="AuthProgress" Height="4" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,0,8"/>
+<TextBlock x:Name="State" Text="회사 OWA에 로그인한 뒤 클리너를 열어 주세요." TextWrapping="Wrap" Margin="0,0,0,8"/>
+<TextBlock Text="EWS 연결 후 변경 작업이 기본 허용됩니다. 실행 순서: 처리 방식 선택 (조회만 제외) → 대상 메일 검색 → 메일 체크 → 선택 항목 실행" TextWrapping="Wrap" Foreground="#536174" Margin="0,0,0,8"/>
+</StackPanel>
+<Border DockPanel.Dock="Bottom" Background="#E9EEF5" Padding="8" Margin="0,8,0,0"><TextBlock x:Name="Notice" Text="OWA는 회사 화면에서, EWS는 앱 로그인 창에서 인증합니다. EWS 계정은 선택하여 저장할 수 있습니다." TextWrapping="Wrap"/></Border>
+<Grid x:Name="BrowserHost"><wv:WebView2 x:Name="Browser"/></Grid>
+</DockPanel>
+</Window>
+

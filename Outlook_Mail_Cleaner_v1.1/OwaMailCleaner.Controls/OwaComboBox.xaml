@@ -1,0 +1,11 @@
+<UserControl x:Class="OwaMailCleaner.Controls.OwaComboBox" x:Name="root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="Themes/Tokens.xaml"/></ResourceDictionary.MergedDictionaries><BooleanToVisibilityConverter x:Key="BooleanToVisibility"/></ResourceDictionary></UserControl.Resources>
+  <Grid>
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <TextBlock Text="{Binding Label, ElementName=root}" FontWeight="SemiBold" Foreground="{StaticResource OwaTextBrush}" Margin="0,0,0,5" />
+    <ComboBox Grid.Row="1" ItemsSource="{Binding ItemsSource, ElementName=root}" SelectedItem="{Binding SelectedItem, ElementName=root, Mode=TwoWay}" DisplayMemberPath="{Binding DisplayMemberPath, ElementName=root}" Padding="9,7" BorderBrush="{StaticResource OwaBorderBrush}" BorderThickness="1" Background="White" />
+    <TextBlock Grid.Row="2" Text="{Binding ErrorText, ElementName=root}" Foreground="{StaticResource OwaDangerBrush}" FontSize="12" Margin="0,4,0,0" Visibility="{Binding HasError, ElementName=root, Converter={StaticResource BooleanToVisibility}}" />
+  </Grid>
+</UserControl>

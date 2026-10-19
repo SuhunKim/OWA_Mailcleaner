@@ -1,0 +1,36 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12120.119 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OwaMailCleaner.Controls", "OwaMailCleaner.Controls\OwaMailCleaner.Controls.csproj", "{C9BFB2BF-03B4-42B5-8B96-265A123AAC42}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OwaMailCleaner.Controls.Demo", "OwaMailCleaner.Controls.Demo\OwaMailCleaner.Controls.Demo.csproj", "{54E54E43-1A19-4B75-80A7-0D70BBE0E3D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OwaMailCleaner.Controls.Tests", "OwaMailCleaner.Controls.Tests\OwaMailCleaner.Controls.Tests.csproj", "{FFB80F78-BF28-4E1C-A576-AFD98E80A7B0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C9BFB2BF-03B4-42B5-8B96-265A123AAC42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9BFB2BF-03B4-42B5-8B96-265A123AAC42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9BFB2BF-03B4-42B5-8B96-265A123AAC42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9BFB2BF-03B4-42B5-8B96-265A123AAC42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54E54E43-1A19-4B75-80A7-0D70BBE0E3D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54E54E43-1A19-4B75-80A7-0D70BBE0E3D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54E54E43-1A19-4B75-80A7-0D70BBE0E3D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54E54E43-1A19-4B75-80A7-0D70BBE0E3D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFB80F78-BF28-4E1C-A576-AFD98E80A7B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFB80F78-BF28-4E1C-A576-AFD98E80A7B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFB80F78-BF28-4E1C-A576-AFD98E80A7B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFB80F78-BF28-4E1C-A576-AFD98E80A7B0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2065DDF9-0578-4BEA-B0B1-1CD2626636DD}
+	EndGlobalSection
+EndGlobal

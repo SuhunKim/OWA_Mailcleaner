@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "OWA 메일 클리너",
+  "version": "1.1.0",
+  "description": "사내 Outlook Web App에서 메일을 확인한 뒤 첨부 삭제, 읽음 처리, 휴지통 이동 및 휴지통 정리를 수행합니다.",
+  "host_permissions": [
+    "https://mail.apsfamily.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mail.apsfamily.com/owa/*",
+        "https://mail.apsfamily.com/OWA/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    }
+  ]
+}
