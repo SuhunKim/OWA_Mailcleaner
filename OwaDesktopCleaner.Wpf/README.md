@@ -31,8 +31,10 @@ dotnet run --project .\Tests -c Release -- --ui-smoke .\.artifacts\ui-review
 - 보존한 기존 버전: `D:\기타 프로그램\Outlook VBA\OwaDesktopCleaner`
 - 기존 WPF 작업 폴더(보존): `D:\기타 프로그램\Outlook VBA\OwaDesktopCleaner.Wpf`
 - 이번 UI 수정 솔루션: `D:\기타 프로그램\Outlook VBA\.worktrees\wpf-js-ui\OwaDesktopCleaner.Wpf\OwaDesktopCleaner.Wpf.sln`
-- Release 실행파일: `MailCleaner\bin\Release\net10.0-windows\OwaMailCleaner.Wpf.exe`
-- Debug 실행파일: `MailCleaner\bin\Debug\net10.0-windows\OwaMailCleaner.Wpf.exe`
+- Release 실행파일: `_bin\MailCleaner\Release\net10.0-windows\OwaMailCleaner.Wpf.exe`
+- Debug 실행파일: `_bin\MailCleaner\Debug\net10.0-windows\OwaMailCleaner.Wpf.exe`
+
+빌드 출력은 솔루션 폴더의 `_bin\<프로젝트>\<Debug 또는 Release>\<대상 프레임워크>\`에 모입니다. `Directory.Build.props`에서 지정하므로 Visual Studio/F5와 `dotnet build`에 공통 적용됩니다. `MailCleaner`, `Tests`, `ConnectionCheck` 출력은 서로 분리하며 기존 `bin` 폴더는 삭제하지 않습니다.
 
 설치 상태를 실제 확인한 환경은 Visual Studio Professional 2026 18.9.2, .NET 데스크톱 개발 워크로드, .NET SDK 10.0.402입니다. Visual Studio 2026에서 위 `.sln`을 열고 **MailCleaner를 시작 프로젝트로 설정**한 뒤 F5로 실행하세요. Visual Studio 2022도 설치되어 있지만 이 솔루션은 2026에서 여세요.
 
@@ -95,7 +97,7 @@ dotnet run --project .\Tests -c Release -- --ui-smoke .\.artifacts\ui-review
 - 현재 Windows 계정으로 실제 GetFolder/FindFolder/FindItem: HTTP 200 및 SOAP NoError.
 - 완성한 WPF C# 조회 서비스: 폴더 10개, 당일 지운 편지함 조회 0건, 변경 권한 false 상태에서 검증.
 - 실제 WPF 창 + ViewModel: Windows 통합 인증, 폴더 10개, 2026-10-20 받은편지함 검색 성공. 최종 Release 실행파일 검증에서는 3건을 조회했습니다. 조회만 모드로 수행했으며 변경 명령을 호출하지 않았습니다.
-- 실제 Debug/Release 창 및 로그인 창 초기화, 아이콘 리소스 로딩, 메인 화면 레이아웃 렌더링 확인. 최종 Release EXE의 초기화 검사와 실제 조회 검사 모두 종료 코드 0입니다. EXE 아이콘 리소스 1개를 확인했고 복사한 ICO의 SHA-256이 원본과 일치합니다. 렌더링 결과는 `MailCleaner\bin\<구성>\net10.0-windows\Smoke\main-window.png`에 있습니다.
+- 실제 Debug/Release 창 및 로그인 창 초기화, 아이콘 리소스 로딩, 메인 화면 레이아웃 렌더링 확인. 최종 Release EXE의 초기화 검사와 실제 조회 검사 모두 종료 코드 0입니다. EXE 아이콘 리소스 1개를 확인했고 복사한 ICO의 SHA-256이 원본과 일치합니다. 렌더링 결과는 `_bin\MailCleaner\<구성>\net10.0-windows\Smoke\main-window.png`에 있습니다.
 - 실제 사서함의 첨부 삭제·읽음 변경·휴지통 이동·SoftDelete는 **시험하지 않았습니다**. 사용자가 지정한 테스트 메일과 작업으로 별도 확인해야 합니다. 모의 성공이 실서버 변경 성공을 뜻하지 않습니다.
 
 실행 명령 (새 솔루션 폴더에서):
@@ -106,7 +108,7 @@ dotnet build .\OwaDesktopCleaner.Wpf.sln -c Release -m:1
 dotnet run --project .\Tests -c Release
 dotnet run --project .\ConnectionCheck -c Release -- --self-test
 # 네트워크 없이 창·아이콘 초기화 검사 후 자동 종료
-dotnet .\MailCleaner\bin\Release\net10.0-windows\OwaMailCleaner.Wpf.dll --smoke-test
+dotnet .\_bin\MailCleaner\Release\net10.0-windows\OwaMailCleaner.Wpf.dll --smoke-test
 ```
 
 실제 서버 조회 및 현재 Windows 계정 인증은 회사망 접근이 가능한 환경이 필요합니다. 이번 Codex 샌드박스 안에서는 DNS가 실패했으나 승인된 샌드박스 밖 실행에서는 같은 C# 경로로 성공했습니다. 일반 실행 중 문제가 있으면 회사망/VPN·계정·회사 EWS 정책을 먼저 확인하세요. 기존 앱 로그인 데이터를 복사할 필요가 없습니다.

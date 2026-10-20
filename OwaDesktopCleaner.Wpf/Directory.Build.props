@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Shared by Visual Studio/F5 and dotnet build; keep project outputs separate. -->
+    <BaseOutputPath>$(MSBuildThisFileDirectory)_bin\$(MSBuildProjectName)\</BaseOutputPath>
+  </PropertyGroup>
+</Project>
