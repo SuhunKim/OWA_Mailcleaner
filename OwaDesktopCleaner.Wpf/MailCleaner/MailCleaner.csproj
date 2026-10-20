@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>OwaMailCleaner.Wpf</AssemblyName>
+    <RootNamespace>MailCleaner</RootNamespace>
+    <ApplicationIcon>Assets/owa-cleaner.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup><Resource Include="Assets/window-icon.png" /></ItemGroup>
+</Project>

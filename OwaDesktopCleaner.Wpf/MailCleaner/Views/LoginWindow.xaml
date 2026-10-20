@@ -1,0 +1,12 @@
+<Window x:Class="MailCleaner.Views.LoginWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="WPF 전용 EWS 계정" Icon="/OwaMailCleaner.Wpf;component/Assets/window-icon.png" Width="480" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="24">
+    <TextBlock Text="EWS 통합 인증 (Negotiate / NTLM)" FontSize="18" FontWeight="SemiBold"/>
+    <TextBlock Text="회사에서 안내한 계정 형식을 사용하세요. 기존 앱의 저장 계정은 읽지 않습니다." TextWrapping="Wrap" Margin="0,8,0,16"/>
+    <TextBlock Text="사용자 이름"/><TextBox x:Name="User" Margin="0,4,0,12"/>
+    <TextBlock Text="비밀번호"/><PasswordBox x:Name="Secret" Padding="8" Margin="0,4,0,12"/>
+    <CheckBox x:Name="Remember" Content="이 WPF 앱 전용 Windows 자격 증명에 저장" Margin="0,0,0,12"/>
+    <WrapPanel Margin="0,0,0,12"><Button Content="WPF 저장 계정 불러오기" Click="LoadSaved"/><Button Content="WPF 저장 계정 삭제" Click="DeleteSaved"/></WrapPanel>
+    <TextBlock x:Name="Notice" TextWrapping="Wrap" Margin="0,0,0,12"/>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="취소" IsCancel="True"/><Button Content="연결" IsDefault="True" Click="Accept"/></StackPanel>
+  </StackPanel>
+</Window>
