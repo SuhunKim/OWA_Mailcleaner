@@ -1,23 +1,19 @@
 <Window x:Class="MailCleaner.Views.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MailCleaner.Views" xmlns:models="clr-namespace:MailCleaner.Models" mc:Ignorable="d"
-        Title="메일 클리너 · WPF" Icon="/OwaMailCleaner.Wpf;component/Assets/window-icon.png" Width="1140" Height="850" MinWidth="1040" MinHeight="680"
-        Background="#626B7A" FontFamily="Segoe UI, Malgun Gothic" FontSize="14" Foreground="#172033" Language="ko-KR" WindowStartupLocation="CenterScreen">
+        Title="메일 클리너 · WPF" Icon="/OwaMailCleaner.Wpf;component/Assets/window-icon.png" Width="1100" Height="760" MinWidth="760" MinHeight="640" ResizeMode="CanResize" WindowStyle="SingleBorderWindow"
+        Background="White" FontFamily="Segoe UI, Malgun Gothic" FontSize="14" Foreground="#172033" Language="ko-KR" WindowStartupLocation="CenterScreen">
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="CleanerTheme.xaml"/></ResourceDictionary.MergedDictionaries>
-      <Style TargetType="CheckBox" BasedOn="{StaticResource CleanerCheckBox}"/><BooleanToVisibilityConverter x:Key="BoolVisibility"/><local:ModeSelectionConverter x:Key="ModeSelection"/><local:StatusColorConverter x:Key="StatusColor"/><local:BodyHeightConverter x:Key="BodyHeight"/><DataTemplate x:Key="FolderOption"><TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis"/></DataTemplate><DataTemplate x:Key="SortOption"><TextBlock Text="{Binding Label}"/></DataTemplate>
+      <Style TargetType="CheckBox" BasedOn="{StaticResource CleanerCheckBox}"/><BooleanToVisibilityConverter x:Key="BoolVisibility"/><local:ModeSelectionConverter x:Key="ModeSelection"/><local:StatusColorConverter x:Key="StatusColor"/><local:FilterHeightConverter x:Key="FilterHeight"/><DataTemplate x:Key="FolderOption"><TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis"/></DataTemplate><DataTemplate x:Key="SortOption"><TextBlock Text="{Binding Label}"/></DataTemplate>
     </ResourceDictionary>
   </Window.Resources>
-  <Grid Margin="18">
-    <Border Background="White" CornerRadius="16" MaxWidth="1040" VerticalAlignment="Center">
-      <Border.Effect><DropShadowEffect BlurRadius="36" ShadowDepth="9" Opacity="0.3" Color="#101828"/></Border.Effect>
-      <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Grid x:Name="ClientLayout">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Border BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="20,16">
           <StackPanel>
             <DockPanel>
-              <Button DockPanel.Dock="Right" Style="{StaticResource CloseButton}" Content="×" Click="CloseWindow" IsEnabled="{Binding Idle}" ToolTip="닫기" AutomationProperties.Name="닫기"/>
               <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="메일 클리너" FontSize="20" FontWeight="Bold"/><TextBlock Text="WPF · 사내 Exchange" Style="{StaticResource MutedText}" Margin="12,5,0,0"/></StackPanel>
             </DockPanel>
             <WrapPanel Margin="0,12,0,0">
@@ -27,7 +23,9 @@
             </WrapPanel>
           </StackPanel>
         </Border>
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,18,20,18"><ScrollViewer.MaxHeight><MultiBinding Converter="{StaticResource BodyHeight}"><Binding Path="ActualHeight" RelativeSource="{RelativeSource AncestorType=Window}"/><Binding Path="ReportVisible"/><Binding Path="ReportExpanded"/></MultiBinding></ScrollViewer.MaxHeight>
+        <Grid x:Name="BodyLayout" Grid.Row="1" Margin="20,18,20,18" ClipToBounds="True">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <ScrollViewer x:Name="FiltersViewport" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ScrollViewer.MaxHeight><MultiBinding Converter="{StaticResource FilterHeight}"><Binding Path="ActualHeight" ElementName="BodyLayout"/><Binding Path="ActualHeight" ElementName="ResultToolbar"/><Binding Path="Margin" ElementName="ResultToolbar"/></MultiBinding></ScrollViewer.MaxHeight>
           <StackPanel>
             <Grid IsEnabled="{Binding Idle}">
               <Grid.ColumnDefinitions><ColumnDefinition Width="1.3*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="145"/><ColumnDefinition Width="145"/></Grid.ColumnDefinitions>
@@ -50,14 +48,16 @@
             </WrapPanel>
             <Border Margin="0,14,0,0" CornerRadius="9" Padding="12,10" Background="{Binding Status, Converter={StaticResource StatusColor}}"><TextBlock Text="{Binding Status}" Foreground="{Binding Status, Converter={StaticResource StatusColor}, ConverterParameter=Foreground}" TextWrapping="Wrap" d:Text="EWS 연결을 먼저 완료해 주세요."/></Border>
             <Border CornerRadius="3" Margin="0,9,0,0" Background="#DBE7F3" Visibility="{Binding Busy, Converter={StaticResource BoolVisibility}}"><ProgressBar Height="6" BorderThickness="0" Foreground="#0F6CBD" Background="Transparent" Minimum="0" Maximum="100" Value="{Binding Percent, Mode=OneWay}" IsIndeterminate="{Binding Indeterminate}"/></Border>
-            <DockPanel Margin="0,16,0,9" LastChildFill="True">
+          </StackPanel>
+          </ScrollViewer>
+            <DockPanel x:Name="ResultToolbar" Grid.Row="1" Margin="0,16,0,9" LastChildFill="True">
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Style="{StaticResource CleanerButton}" Content="전체 선택" Command="{Binding SelectAllCommand}" Margin="0,0,8,0"/><Button Style="{StaticResource CleanerButton}" Content="선택 해제" Command="{Binding ClearSelectionCommand}"/></StackPanel>
               <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0"><TextBlock Text="정렬" VerticalAlignment="Center" Margin="0,0,7,0"/><ComboBox Style="{StaticResource CleanerComboBox}" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}" ItemTemplate="{StaticResource SortOption}" Width="154" Height="36" IsEnabled="{Binding Idle}"/></StackPanel>
               <TextBlock Text="{Binding ResultCountSummary}" FontWeight="Bold" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0"/>
             </DockPanel>
-            <Border BorderBrush="#DFE4EA" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+            <Border x:Name="ResultsFrame" Grid.Row="2" BorderBrush="#DFE4EA" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
               <Grid>
-                <DataGrid x:Name="MailGrid" ItemsSource="{Binding Mails}" Style="{StaticResource CleanerGrid}" IsEnabled="{Binding Idle}" MaxHeight="430" MinHeight="110" Sorting="SortMailGrid">
+                <DataGrid x:Name="MailGrid" ItemsSource="{Binding Mails}" Style="{StaticResource CleanerGrid}" IsEnabled="{Binding Idle}" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" Sorting="SortMailGrid">
                   <DataGrid.Columns>
                     <DataGridTemplateColumn Header="선택" Width="48" CanUserSort="False"><DataGridTemplateColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding Selected, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="메일 선택"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                     <DataGridTextColumn Header="수신일" Binding="{Binding ReceivedDisplay}" SortMemberPath="Received" Width="145" IsReadOnly="True"/>
@@ -71,17 +71,14 @@
                 <TextBlock Text="{Binding EmptyMessage}" Margin="0,52,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" IsHitTestVisible="False"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Mails.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
               </Grid>
             </Border>
-          </StackPanel>
-        </ScrollViewer>
+        </Grid>
         <Expander Grid.Row="2" Header="최근 처리 결과 · 펼치기/접기" IsExpanded="{Binding ReportExpanded}" Visibility="{Binding ReportVisible, Converter={StaticResource BoolVisibility}}" Margin="20,0,20,12" FontSize="12"><StackPanel Margin="0,8,0,0"><TextBlock Text="{Binding ResultSummary}" TextWrapping="Wrap" Margin="0,0,0,6"/><DataGrid ItemsSource="{Binding Results}" Style="{StaticResource CleanerGrid}" IsReadOnly="True" MaxHeight="150"><DataGrid.Columns><DataGridTextColumn Header="제목" Binding="{Binding Subject}" Width="*"/><DataGridTextColumn Header="결과" Binding="{Binding Label}" Width="100"/><DataGridTextColumn Header="설명" Binding="{Binding Detail}" Width="2*"/></DataGrid.Columns></DataGrid></StackPanel></Expander>
-        <Border Grid.Row="3" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="20,16">
+        <Border x:Name="FooterBar" Grid.Row="3" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="20,16">
           <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="{Binding SelectionSummary}" Foreground="#475467" VerticalAlignment="Center" Margin="0,0,12,0"/>
             <TextBlock Grid.Column="1" Text="{Binding ExecutionDisabledReason}" Style="{StaticResource MutedText}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/>
             <StackPanel Grid.Column="2" Orientation="Horizontal"><Button Style="{StaticResource CleanerButton}" Content="닫기" Click="CloseWindow" IsEnabled="{Binding Idle}" Margin="0,0,8,0"/><Button Content="{Binding ExecuteLabel}" Command="{Binding ExecuteCommand}" ToolTip="{Binding ExecutionDisabledReason}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}"><Style.Triggers><DataTrigger Binding="{Binding SelectedMode}" Value="{x:Static models:CleanupMode.EmptyDeleted}"><Setter Property="Background" Value="#D92D20"/><Setter Property="BorderBrush" Value="#D92D20"/></DataTrigger></Style.Triggers></Style></Button.Style></Button></StackPanel>
           </Grid>
         </Border>
-      </Grid>
-    </Border>
   </Grid>
 </Window>

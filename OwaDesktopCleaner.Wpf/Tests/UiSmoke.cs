@@ -32,6 +32,7 @@ internal static class UiSmoke
                     using var vm = new MainViewModel(new Dialogs(), new MemorySettings(), _ => new(new HttpClient(new MockEws())));
                     var window = new MainWindow(_ => vm);
                     window.Show(); await Settle(window);
+                    Require(window.WindowStyle == WindowStyle.SingleBorderWindow && window.ResizeMode == ResizeMode.CanResize, "native title bar and resizable standalone window");
                     Capture(window, output, "wpf-initial.png");
                     await vm.ConnectAsync(null); await vm.SearchAsync(); await Settle(window);
                     Require(vm.Connected && vm.Mails.Count == 3 && vm.AllowChanges, "mock connection/search");
@@ -47,6 +48,22 @@ internal static class UiSmoke
                     vm.Mails[0].Selected = true;
                     vm.Mails[1].Selected = true;
                     await Settle(window); Capture(window, output, "wpf-results.png");
+                    var client = (FrameworkElement)window.FindName("ClientLayout");
+                    var resultsFrame = (FrameworkElement)window.FindName("ResultsFrame");
+                    var mailGrid = (DataGrid)window.FindName("MailGrid");
+                    var footer = (FrameworkElement)window.FindName("FooterBar");
+                    double originalWidth = window.Width, originalHeight = window.Height;
+                    double normalWidth = resultsFrame.ActualWidth, normalListHeight = mailGrid.ActualHeight;
+                    Require(client.Margin == new Thickness(0) && double.IsPositiveInfinity(mailGrid.MaxHeight), "native client has no modal margin or fixed list height");
+                    window.Width = 1560; window.Height = 1040; await Settle(window);
+                    Require(resultsFrame.ActualWidth > normalWidth + 300 && mailGrid.ActualHeight > normalListHeight + 150, "mail list grows with window width and height");
+                    AssertClientBounds(client, footer);
+                    Capture(window, output, "wpf-wide.png");
+                    window.WindowState = WindowState.Maximized; await Settle(window);
+                    Require(window.WindowState == WindowState.Maximized, "native maximize");
+                    AssertClientBounds(client, footer);
+                    Capture(window, output, "wpf-maximized.png");
+                    window.WindowState = WindowState.Normal; window.Width = originalWidth; window.Height = originalHeight; await Settle(window);
                     var picker = (DatePicker)window.FindName("StartPicker");
                     picker.IsDropDownOpen = true; await Settle(window);
                     Require(picker.IsDropDownOpen, "date popup template");
@@ -57,9 +74,10 @@ internal static class UiSmoke
                     vm.ReportExpanded = true; await Settle(window); Capture(window, output, "wpf-report.png");
                     window.Width = window.MinWidth; window.Height = window.MinHeight;
                     await Settle(window); Capture(window, output, "wpf-minimum.png");
+                    AssertClientBounds(client, footer);
                     await vm.SearchAsync(); Require(!vm.ReportVisible, "new search hides report");
                     window.Close();
-                    File.WriteAllText(Path.Combine(output, "ui-checks.txt"), "PASS: real Window, theme, radio binding, dropdown sort, date popup, checkbox selection, mock processing report, minimum-size layout and report reset. Mock HTTP only; no server/credential access.");
+                    File.WriteAllText(Path.Combine(output, "ui-checks.txt"), "PASS: real Window, theme, radio binding, dropdown sort, date popup, checkbox selection, mock processing report, full-client layout, resizing, native maximize, minimum-size footer bounds and report reset. Mock HTTP only; no server/credential access.");
                     Console.WriteLine("PASS real WPF UI checks; mock HTTP only"); exit = 0;
                 }
                 catch (Exception e) { Console.WriteLine(e); }
@@ -91,6 +109,11 @@ internal static class UiSmoke
     {
         await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         window.UpdateLayout();
+    }
+    static void AssertClientBounds(FrameworkElement client, FrameworkElement footer)
+    {
+        var bounds = footer.TransformToAncestor(client).TransformBounds(new Rect(footer.RenderSize));
+        Require(Math.Abs(bounds.Bottom - client.ActualHeight) < 1 && bounds.Left >= -1 && bounds.Right <= client.ActualWidth + 1, "footer stays at client bottom within window bounds");
     }
     static void Require(bool condition, string name) { if (!condition) throw new Exception("UI check failed: " + name); }
     sealed class MemorySettings : IUserSettingsStore

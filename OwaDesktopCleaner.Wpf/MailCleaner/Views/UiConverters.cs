@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 
@@ -23,14 +24,16 @@ public sealed class StatusColorConverter : IValueConverter
     }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
-public sealed class BodyHeightConverter : IMultiValueConverter
+public sealed class FilterHeightConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        double height = values[0] is double n && n > 0 ? n : 850;
-        bool report = values.Length > 1 && values[1] is true;
-        bool expanded = values.Length > 2 && values[2] is true;
-        return Math.Max(170, height - 300 - (report ? expanded ? 190 : 30 : 0));
+        // Let filters scroll on short windows while keeping space for the mail list.
+        // The body itself stretches with the native window; no fixed modal dimensions.
+        if (values[0] is not double height || height <= 0) return 0d;
+        double toolbar = values.Length > 1 && values[1] is double n ? n : 0;
+        if (values.Length > 2 && values[2] is Thickness margin) toolbar += margin.Top + margin.Bottom;
+        return Math.Max(0, (height - toolbar) * 0.7);
     }
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotSupportedException();
 }
