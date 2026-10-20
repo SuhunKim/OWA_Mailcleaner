@@ -1,11 +1,33 @@
 # OWA MailCleaner · WPF
 
+이 브랜치는 [이슈 #1](https://github.com/SuhunKim/OWA_Mailcleaner/issues/1)의 **기존 JavaScript UI와 유사한 WPF 화면**입니다. 기존 JavaScript 버전과 기존 WPF 작업 폴더를 보존하고 `codex/issue-1-wpf-js-ui` 브랜치의 별도 워크트리에서 수정했습니다. 현재 작업 위치는 `D:\기타 프로그램\Outlook VBA\.worktrees\wpf-js-ui`입니다.
+
+기존 `cleaner.js`의 실제 CSS/HTML을 기준으로 흰색 둥근 패널, 파란 버튼, 둥근 입력창, 처리 방식 라디오 버튼, 상태 표시, 정렬 도구, 표 열 순서, 하단 선택 요약과 실행 버튼을 맞췄습니다. 기본 제목 `일보`와 최근 30일, 휴지통 모드의 폴더 전환·조건 복원도 원본 흐름을 따릅니다. WPF 통합 인증 연결 버튼은 작은 상단 행으로 유지했습니다. 달력·팝업·스크롤·창 테두리는 네이티브 WPF 제어이므로 브라우저 렌더링과 세부 모양에 차이가 있습니다.
+
+## 이번 UI 수정 검증
+
+- Debug/Release 빌드: 경고 0, 오류 0.
+- 서비스·ViewModel 모의 테스트: 28개 통과. 기존 변경 안전장치와 정렬 중 선택 유지, 모드 전환 시 검색 무효화, 휴지통 조건 전환·복원을 확인했습니다.
+- 연결 검증 모의 테스트: 20개 통과.
+- 실제 WPF 컨트롤에 모의 EWS 응답을 연결하여 라디오 바인딩, 정렬 드롭다운, 체크박스 선택, 달력 팝업, 처리 결과 접힘/펼침, 최소 창 크기, 재검색 시 결과 숨김을 확인했습니다.
+- 원본 JavaScript CSS/HTML도 네트워크를 차단한 별도 임시 브라우저로 렌더링하여 예시 데이터 화면과 비교했습니다.
+- 이번 UI 작업에서는 실제 서버 로그인이나 사서함 변경을 시험하지 않았습니다.
+
+새 솔루션을 Visual Studio 2026으로 열고 `MailCleaner`를 시작 프로젝트로 지정한 뒤 F5를 누르세요. 실제 사용에는 기본 실행파일을 사용하고, UI 모의 검사 실행기는 아래처럼 실행할 수 있습니다.
+
+```powershell
+dotnet run --project .\Tests -c Release -- --ui-smoke .\.artifacts\ui-review
+```
+
+`.artifacts\ui-review`에는 `javascript-results.png`, `wpf-results.png`, 초기 화면·처리 결과·최소 크기 화면이 있습니다. 모든 메일은 합성 예시이며 실사서함 데이터가 아닙니다. 이 폴더는 Git 추적에서 제외합니다. 원본 비교 화면을 다시 만들려면 Playwright와 Edge가 있는 환경에서 `node .\Tests\render-js-reference.cjs .\.artifacts\ui-review`를 실행하세요. WPF 앱 자체에는 Node나 Playwright가 필요하지 않습니다.
+
 기존 HTML/JavaScript 검색 화면과 업무 로직을 사용하지 않는 .NET 10 WPF 버전입니다. C# HttpClient에서 회사 EWS에 Negotiate/NTLM 통합 인증으로 연결합니다. WebView2와 JavaScript 패키지 의존성이 없습니다.
 
 ## 위치와 실행
 
 - 보존한 기존 버전: `D:\기타 프로그램\Outlook VBA\OwaDesktopCleaner`
-- 새 솔루션: `D:\기타 프로그램\Outlook VBA\OwaDesktopCleaner.Wpf\OwaDesktopCleaner.Wpf.sln`
+- 기존 WPF 작업 폴더(보존): `D:\기타 프로그램\Outlook VBA\OwaDesktopCleaner.Wpf`
+- 이번 UI 수정 솔루션: `D:\기타 프로그램\Outlook VBA\.worktrees\wpf-js-ui\OwaDesktopCleaner.Wpf\OwaDesktopCleaner.Wpf.sln`
 - Release 실행파일: `MailCleaner\bin\Release\net10.0-windows\OwaMailCleaner.Wpf.exe`
 - Debug 실행파일: `MailCleaner\bin\Debug\net10.0-windows\OwaMailCleaner.Wpf.exe`
 
@@ -61,7 +83,7 @@
 
 변경 직전에 ID·부모 폴더·IPM.Note 항목 종류·최신 ChangeKey를 확인합니다. 일반 첨부는 FileAttachment 중 인라인/ContentId/ContentLocation이 없는 첨부만 허용하며, 검색·선택 때 보유한 첨부 ID와 직전 재조회한 첨부 ID의 교집합으로 제한합니다. 읽음 처리에는 `SuppressReadReceipts=true`를 적용하고 최신 ChangeKey의 충돌은 덮어쓰지 않습니다. 변경 요청에 사용한 검색 결과는 즉시 소모하여 중복 실행을 차단합니다.
 
-## 실제 검증 결과 — 2026-10-20 (한국시간)
+## 기초 WPF 구현 당시의 검증 기록 — 2026-10-20 (한국시간)
 
 - .NET 10 Debug/Release 솔루션 빌드: 경고 0, 오류 0.
 - WPF 서비스/ViewModel 모의 테스트: 26개 통과. 검색 파싱·KST 경계·조건/모드 변경·선택 무효화·설정 유지·최종 확인·결과 숨김·취소·인증 거부·부분 실패·결과 미확인·중복/동시 변경 차단·일반 첨부 교집합 등을 검사했습니다.

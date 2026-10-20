@@ -26,6 +26,10 @@ public sealed class MainViewModel : Observable, IDisposable
     public ObservableCollection<MailItem> Mails { get; } = [];
     public ObservableCollection<ProcessingResult> Results { get; } = [];
     public IReadOnlyList<ModeOption> Modes { get; } = [new(CleanupMode.Inspect, "조회만"), new(CleanupMode.RemoveAttachments, "일반 첨부 삭제"), new(CleanupMode.MarkRead, "읽음 처리"), new(CleanupMode.MoveToDeleted, "휴지통 이동"), new(CleanupMode.EmptyDeleted, "휴지통 정리 (SoftDelete)")];
+    public IReadOnlyList<SortOption> SortOptions { get; } = [new(MailSort.DateDesc, "수신일 최신순"), new(MailSort.DateAsc, "수신일 오래된 순"), new(MailSort.SizeDesc, "용량 큰 순"), new(MailSort.SizeAsc, "용량 작은 순")];
+    SortOption selectedSort = new(MailSort.DateDesc, "수신일 최신순");
+    public SortOption SelectedSort { get => selectedSort; set { if (value != null) Set(ref selectedSort, value); } }
+    SearchCriteria? previousCriteria;
     public AsyncCommand ConnectCommand { get; }
     public AsyncCommand LoginCommand { get; }
     public AsyncCommand SearchCommand { get; }
@@ -40,6 +44,9 @@ public sealed class MainViewModel : Observable, IDisposable
         createTransport = transportFactory ?? new AuthenticationService().Create;
         settings = settingsService.Load();
         mode = Modes[0];
+        selectedSort = SortOptions[0];
+        var today = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(9)).Date;
+        keyword = "일보"; start = today.AddDays(-29); end = today;
         ConnectCommand = new(() => ConnectAsync(null), () => !Busy, Failure);
         LoginCommand = new(async () => { var credential = dialogs.Credentials(); if (credential != null) await ConnectAsync(credential); }, () => !Busy, Failure);
         SearchCommand = new(SearchAsync, () => !Busy && Connected && Folder != null && ValidDates, Failure);
@@ -56,7 +63,38 @@ public sealed class MainViewModel : Observable, IDisposable
     public DateTime? Start { get => start; set { if (Set(ref start, value)) Invalidate(); } }
     public DateTime? End { get => end; set { if (Set(ref end, value)) Invalidate(); } }
     ModeOption mode;
-    public ModeOption Mode { get => mode; set { if (value != null && Set(ref mode, value)) Invalidate(); } }
+    public ModeOption Mode
+    {
+        get => mode;
+        set
+        {
+            if (value == null || value == mode) return;
+            var before = Criteria;
+            if (!Set(ref mode, value)) return;
+            if (value.Value == CleanupMode.EmptyDeleted && query != null)
+            {
+                previousCriteria = before;
+                Folder = Folders.FirstOrDefault(x => x.Id == query.DeletedFolderId);
+                Keyword = "";
+                SelectedSort = SortOptions.Single(x => x.Value == MailSort.DateAsc);
+            }
+            else if (before.Mode == CleanupMode.EmptyDeleted && previousCriteria is {} previous)
+            {
+                Folder = Folders.FirstOrDefault(x => x.Id == previous.FolderId);
+                Keyword = previous.Keyword; Start = previous.Start; End = previous.End;
+                previousCriteria = null;
+                SelectedSort = SortOptions[0];
+            }
+            Notify(nameof(SelectedMode)); Invalidate();
+        }
+    }
+    public CleanupMode SelectedMode { get => Mode.Value; set => Mode = Modes.Single(x => x.Value == value); }
+    public bool CanChooseFolder => Idle && Connected && SelectedMode != CleanupMode.EmptyDeleted;
+    public bool CanEmptyDeleted => Idle && Connected && !string.IsNullOrEmpty(query?.DeletedFolderId);
+    public string ExecuteLabel => SelectedMode == CleanupMode.EmptyDeleted ? "선택 항목 비우기" : "선택 항목 실행";
+    public string SearchHint => SelectedMode == CleanupMode.EmptyDeleted ? "지운 편지함 바로 아래의 일반 메일만 조회합니다. 기간을 직접 변경할 수 있습니다." : "선택한 한 폴더만 검색합니다. 종료일의 23:59:59까지 포함됩니다.";
+    public string ResultCountSummary => $"검색 결과: {Mails.Count:N0}건 · {MailDisplay.Total(Mails)}";
+    public string EmptyMessage => Busy ? "조회 중입니다…" : session.Available ? "조건에 맞는 메일이 없습니다." : "검색 조건을 입력해 주세요.";
     bool busy, allowChanges, reportVisible, reportExpanded;
     bool changingSelection;
     bool dateInputValid = true;
@@ -97,7 +135,7 @@ public sealed class MainViewModel : Observable, IDisposable
         get
         {
             var selected = Mails.Where(x => x.Selected).ToArray();
-            return $"검색 {Mails.Count:N0}건 · 선택 {selected.Length:N0}건 / {selected.Sum(x => x.Size ?? 0) / 1048576d:N2} MB" + (selected.Any(x => x.Size is null) ? " (용량 미확인 항목 제외)" : "");
+            return $"선택: {selected.Length:N0}건 · {MailDisplay.Total(selected)}";
         }
     }
     SearchCriteria Criteria => new(Folder?.Id ?? "", Keyword.Trim(), Start?.Date, End?.Date, Mode.Value);
@@ -115,6 +153,7 @@ public sealed class MainViewModel : Observable, IDisposable
     void Refresh()
     {
         Notify(nameof(Connected)); Notify(nameof(CanChangePermission)); Notify(nameof(ExecutionDisabledReason)); Notify(nameof(SelectionSummary));
+        Notify(nameof(CanChooseFolder)); Notify(nameof(CanEmptyDeleted)); Notify(nameof(ExecuteLabel)); Notify(nameof(SearchHint)); Notify(nameof(ResultCountSummary)); Notify(nameof(EmptyMessage));
         ConnectCommand?.Refresh(); LoginCommand?.Refresh(); SearchCommand?.Refresh(); ExecuteCommand?.Refresh(); StopCommand?.Refresh(); SelectAllCommand?.Refresh(); ClearSelectionCommand?.Refresh();
     }
     void SelectionChanged(object? sender, PropertyChangedEventArgs e) { if (!changingSelection && e.PropertyName == nameof(MailItem.Selected)) Refresh(); }
@@ -142,7 +181,8 @@ public sealed class MainViewModel : Observable, IDisposable
             Status = "EWS 통합 인증 및 폴더 조회 중";
             var folders = await query.ConnectAsync(cancellation!.Token);
             foreach (var f in folders) Folders.Add(f);
-            Folder = Folders.FirstOrDefault(x => x.Id == query.InboxFolderId) ?? Folders.FirstOrDefault();
+            string initialFolder = SelectedMode == CleanupMode.EmptyDeleted ? query.DeletedFolderId : query.InboxFolderId;
+            Folder = Folders.FirstOrDefault(x => x.Id == initialFolder) ?? Folders.FirstOrDefault();
             allowChanges = settings.AllowChanges ?? true; transport.AllowChanges = allowChanges; Notify(nameof(AllowChanges));
             Status = $"EWS 연결 성공 · 폴더 {Folders.Count:N0}개 · { (allowChanges ? "변경 작업 허용" : "조회 전용") }";
         }

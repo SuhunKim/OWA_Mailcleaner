@@ -133,6 +133,7 @@ public sealed class EwsQueryService(EwsTransport transport) : IMailQuery
         Id = Attr(x, "ItemId", "Id"), ChangeKey = Attr(x, "ItemId", "ChangeKey"), ParentId = Attr(x, "ParentFolderId", "Id"),
         ItemClass = Text(x, "ItemClass"), Subject = Text(x, "Subject") is { Length: > 0 } subject ? subject : "(제목 없음)",
         Sender = (string?)x.Element(T + "From")?.Element(T + "Mailbox")?.Element(T + "Name") ?? "",
+        SenderAddress = (string?)x.Element(T + "From")?.Element(T + "Mailbox")?.Element(T + "EmailAddress") ?? "",
         Received = DateTimeOffset.TryParse(Text(x, "DateTimeReceived"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date) ? date : null,
         Size = long.TryParse(Text(x, "Size"), out long size) && size >= 0 ? size : null,
         HasAttachments = Text(x, "HasAttachments") == "true", IsRead = Text(x, "IsRead") == "true",

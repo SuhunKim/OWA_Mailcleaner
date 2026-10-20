@@ -7,6 +7,7 @@ using MailCleaner.Services;
 using MailCleaner.ViewModels;
 using static MailCleaner.Services.EwsTransport;
 
+if (args.Length == 2 && args[0] == "--ui-smoke") return UiSmoke.Run(args[1]);
 if (args.SequenceEqual(new[] { "--live-read" }))
 {
     using var transport = new AuthenticationService().Create();
@@ -68,6 +69,31 @@ try
         await vm.ConnectAsync(null); Require(vm.AllowChanges); expired = true;
         await Reject<EwsException>(() => vm.SearchAsync()); Require(!vm.Connected && !vm.AllowChanges && !vm.ExecuteCommand.CanExecute(null));
     });
+    await Test("UI mode chips and display sort preserve execution safeguards", async () => {
+        using var vm = new MainViewModel(new FakeDialogs(), new FakeSettings(), VmFactory());
+        await vm.ConnectAsync(null); await vm.SearchAsync(); vm.Mails[0].Selected = true;
+        vm.SelectedSort = vm.SortOptions.Single(x => x.Value == MailSort.SizeDesc);
+        Require(vm.Mails[0].Selected);
+        vm.SelectedMode = CleanupMode.MarkRead;
+        Require(!vm.Mails[0].Selected && !vm.ExecuteCommand.CanExecute(null));
+        string previousFolder = vm.Folder!.Id; string previousKeyword = vm.Keyword;
+        vm.SelectedMode = CleanupMode.EmptyDeleted;
+        Require(vm.Folder!.Id == "deleted" && vm.Keyword == "" && !vm.CanChooseFolder && vm.ExecuteLabel == "선택 항목 비우기");
+        await vm.ConnectAsync(null); Require(vm.Folder!.Id == "deleted" && !vm.CanChooseFolder);
+        vm.SelectedMode = CleanupMode.Inspect;
+        Require(vm.Folder!.Id == previousFolder && vm.Keyword == previousKeyword && vm.CanChooseFolder && !vm.ExecuteCommand.CanExecute(null));
+    });
+    await Test("all display sorts keep unknown values last", () => Sync(() => {
+        var a = new MailItem { Id = "small", Size = 1024, Received = DateTimeOffset.Parse("2026-10-19T01:00:00Z") };
+        var b = new MailItem { Id = "large", Size = 2097152, Received = DateTimeOffset.Parse("2026-10-20T01:00:00Z") };
+        var unknown = new MailItem { Id = "unknown" };
+        foreach (var sort in Enum.GetValues<MailSort>())
+        {
+            var ordered = new[] { unknown, a, b }.OrderBy(x => x, new MailItemComparer(sort)).ToArray();
+            Require(ordered[^1] == unknown && ordered[0] == (sort is MailSort.SizeDesc or MailSort.DateDesc ? b : a));
+        }
+        Require(MailDisplay.Size(1024) == "1.0 KB" && MailDisplay.Size(null) == "미확인");
+    }));
     await Test("condition and mode changes invalidate execution", () => Sync(() => {
         var c = Criteria(); var s = Session(c, Mail());
         foreach (var changed in new[] { c with { FolderId = "other" }, c with { Keyword = "a" }, c with { Start = DateTime.Today }, c with { End = DateTime.Today }, c with { Mode = CleanupMode.EmptyDeleted } }) Require(!s.Matches(changed));
