@@ -49,12 +49,12 @@ public sealed class EwsTransport(HttpClient http) : IDisposable
             int status = (int)response.StatusCode;
             if (status is 401 or 403 or 440 || status is >= 300 and < 400)
             {
-                Expired(); throw new EwsException("인증 만료 또는 거부 · 다시 연결하세요", true);
+                Expired(); throw new EwsConnectionException(ConnectionDiagnostic.Response(response), true);
             }
-            if (!response.IsSuccessStatusCode) throw new EwsException($"HTTP {status}");
+            if (!response.IsSuccessStatusCode) throw new EwsConnectionException(ConnectionDiagnostic.Response(response));
             if (response.Content.Headers.ContentType?.MediaType is not ("text/xml" or "application/soap+xml"))
             {
-                Expired(); throw new EwsException("SOAP 대신 로그인 화면 또는 비정상 응답", true);
+                Expired(); throw new EwsConnectionException(new("SOAP", "UnexpectedContentType", "SOAP 대신 로그인 화면 또는 비정상 응답입니다. 외부 EWS 인증 경로를 확인하세요.", status), true);
             }
             using var input = new StringReader(await response.Content.ReadAsStringAsync(cancellation));
             using var reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 20_000_000 });
@@ -64,15 +64,22 @@ public sealed class EwsTransport(HttpClient http) : IDisposable
             if (messages is not { Length: > 0 } || messages.Any(x => x.Name != M + (name + "ResponseMessage"))) throw new EwsException("응답 구조 미확인");
             if (messages.Any(x => (string?)x.Element(M + "ResponseCode") is "ErrorAccessDenied" or "ErrorInvalidClientAccessToken" or "ErrorInvalidUserSid"))
             {
-                Expired(); throw new EwsException("SOAP 인증 거부", true);
+                Expired(); throw new EwsConnectionException(new("SOAP", "SoapAuthenticationDenied", "SOAP 인증 거부 · EWS 계정 접근 정책을 확인하세요.", status), true);
             }
             return messages;
         }
         catch (Exception ex) when (write && sent && ex is not MutationUnknownException)
         {
+            if (ex is HttpRequestException { HttpRequestError: HttpRequestError.UserAuthenticationError }) Expired();
             // Even an HTTP/authentication error after submission does not prove a mutation's outcome.
             throw new MutationUnknownException();
         }
+        catch (HttpRequestException ex)
+        {
+            if (ex.HttpRequestError == HttpRequestError.UserAuthenticationError) Expired();
+            throw new EwsConnectionException(ConnectionDiagnostic.Network(ex), ex.HttpRequestError == HttpRequestError.UserAuthenticationError);
+        }
+        catch (OperationCanceledException) when (!cancellation.IsCancellationRequested) { throw new EwsConnectionException(ConnectionDiagnostic.Timeout()); }
     }
     public static void RequireSuccess(XElement message)
     {

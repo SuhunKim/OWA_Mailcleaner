@@ -8,6 +8,13 @@ using MailCleaner.ViewModels;
 using static MailCleaner.Services.EwsTransport;
 
 if (args.Length == 2 && args[0] == "--ui-smoke") return UiSmoke.Run(args[1]);
+if (args.SequenceEqual(new[] { "--probe" }))
+{
+    using var handler = new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, UseDefaultCredentials = false };
+    using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
+    var result = await ConnectionProbe.RunAsync(http, default);
+    Console.WriteLine(result.Report); Console.WriteLine(result.Guidance); return 0;
+}
 if (args.SequenceEqual(new[] { "--live-read" }))
 {
     using var transport = new AuthenticationService().Create();
@@ -225,6 +232,72 @@ try
             try { await transport.CallAsync(new XElement(M + "GetItem"), default); throw new Exception("Expected rejection"); }
             catch (System.Xml.XmlException) { } catch (EwsException) { }
         }
+    });
+    await Test("explicit credentials scoped to EWS; domain and UPN preserved", () => {
+        using var secret = new System.Security.SecureString(); secret.AppendChar('x');
+        var domain = AuthenticationService.ExplicitCredential("  COMPANY\\someone  ", secret);
+        var upn = AuthenticationService.ExplicitCredential("someone@example.invalid", secret);
+        Require(domain.Domain == "COMPANY" && domain.UserName == "someone" && upn.UserName == "someone@example.invalid" && upn.Domain == "");
+        using var handler = AuthenticationService.CreateHandler(domain);
+        Require(!handler.UseDefaultCredentials && !handler.AllowAutoRedirect && !handler.UseCookies && handler.UseProxy && handler.ServerCertificateCustomValidationCallback == null);
+        Require(ReferenceEquals(handler.Credentials!.GetCredential(Endpoint, "NTLM"), domain));
+        Require(handler.Credentials.GetCredential(new Uri("https://untrusted.invalid/"), "NTLM") == null);
+        Require(handler.Credentials.GetCredential(Endpoint, "Basic") == null);
+        return Task.CompletedTask;
+    });
+    foreach (var error in new[] { HttpRequestError.NameResolutionError, HttpRequestError.ConnectionError, HttpRequestError.SecureConnectionError, HttpRequestError.ProxyTunnelError, HttpRequestError.UserAuthenticationError })
+        await Test("classified network error " + error, async () => {
+            using var http = new HttpClient(new MockHandler((_, _) => throw new HttpRequestException(error, "SECRET user/token", null)));
+            var diagnostic = await ConnectionProbe.RunAsync(http, default);
+            Require(diagnostic.Code == error.ToString() && !diagnostic.Report.Contains("SECRET"));
+            using var transport = new EwsTransport(new HttpClient(new MockHandler((_, _) => throw new HttpRequestException(error, "SECRET", null))));
+            try { await transport.CallAsync(new XElement(M + "GetFolder"), default); throw new Exception("not rejected"); }
+            catch (EwsConnectionException ex) { Require(ex.Diagnostic.Code == error.ToString() && !ex.Message.Contains("SECRET")); }
+        });
+    foreach (int status in new[] { 200, 302, 401, 403, 407, 500 })
+        await Test("anonymous probe HTTP " + status + " without secrets", async () => {
+            using var handler = new MockHandler((request, _) => {
+                Require(request.Method == HttpMethod.Post && request.Headers.Authorization == null && request.RequestUri == Endpoint);
+                var response = new HttpResponseMessage((HttpStatusCode)status) { Content = new StringContent("SECRET response") };
+                response.Headers.TryAddWithoutValidation("WWW-Authenticate", new[] { "Negotiate SECRET", "NTLM SECRET", "Basic realm=\"SECRET\"", "Custom SECRET" });
+                response.Headers.Location = new Uri("https://untrusted.invalid/?SECRET");
+                return Task.FromResult(response);
+            });
+            using var http = new HttpClient(handler);
+            var result = await ConnectionProbe.RunAsync(http, default);
+            Require(result.HttpStatus == status && result.Schemes == "Negotiate,NTLM,Basic" && !result.Report.Contains("SECRET") && !result.Report.Contains("untrusted"));
+            Require(handler.Count == 1 && (status != 302 || result.Code == "RedirectBlocked") && (status != 401 || result.Code == "ChallengeObserved"));
+        });
+    await Test("probe timeout differs from user cancellation", async () => {
+        using var http = new HttpClient(new MockHandler((_, _) => throw new TaskCanceledException("SECRET")));
+        Require((await ConnectionProbe.RunAsync(http, default)).Code == "Timeout");
+        using var cancel = new CancellationTokenSource(); cancel.Cancel();
+        await Reject<OperationCanceledException>(() => ConnectionProbe.RunAsync(http, cancel.Token));
+    });
+    await Test("read timeout classified, submitted write timeout remains unknown", async () => {
+        using var transport = new EwsTransport(new HttpClient(new MockHandler((_, _) => throw new TaskCanceledException())));
+        try { await transport.CallAsync(new XElement(M + "GetFolder"), default); throw new Exception("not rejected"); }
+        catch (EwsConnectionException ex) { Require(ex.Diagnostic.Code == "Timeout"); }
+        transport.MarkAuthenticated(); transport.AllowChanges = true;
+        await Reject<MutationUnknownException>(() => transport.CallAsync(EwsMailWriter.Build(Mail(), CleanupMode.MarkRead, []), default));
+    });
+    await Test("ViewModel exposes safe diagnostic and clears it on reconnect", async () => {
+        bool fail = true;
+        using var vm = new MainViewModel(new FakeDialogs(), new FakeSettings(), _ => fail
+            ? new EwsTransport(new HttpClient(new MockHandler((_, _) => throw new HttpRequestException(HttpRequestError.SecureConnectionError, "SECRET", null))))
+            : VmFactory()(null), _ => Task.FromResult(new ConnectionDiagnostic("Authentication", "ChallengeObserved", "서버 도달", 401, "NTLM")));
+        vm.ConnectCommand.Execute(null);
+        Require(vm.HasDiagnostic && vm.DiagnosticText.Contains("SecureConnectionError") && !vm.DiagnosticText.Contains("SECRET") && !vm.Connected && !vm.AllowChanges);
+        await vm.DiagnoseAsync();
+        Require(vm.DiagnosticText.Contains("AnonymousProbe") && !vm.Connected && !vm.AllowChanges);
+        fail = false; await vm.ConnectAsync(null);
+        Require(!vm.HasDiagnostic && vm.Connected);
+    });
+    await Test("authentication negotiation failure revokes mutation permission", async () => {
+        using var transport = new EwsTransport(new HttpClient(new MockHandler((_, _) => throw new HttpRequestException(HttpRequestError.UserAuthenticationError))));
+        transport.MarkAuthenticated(); transport.AllowChanges = true;
+        await Reject<EwsConnectionException>(() => transport.CallAsync(new XElement(M + "GetFolder"), default));
+        Require(!transport.Authenticated && !transport.AllowChanges);
     });
     Console.WriteLine($"{count} tests passed; mock only; no mailbox changes."); return 0;
 }

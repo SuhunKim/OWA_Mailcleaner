@@ -9,16 +9,20 @@
       <Style TargetType="CheckBox" BasedOn="{StaticResource CleanerCheckBox}"/><BooleanToVisibilityConverter x:Key="BoolVisibility"/><local:ModeSelectionConverter x:Key="ModeSelection"/><local:StatusColorConverter x:Key="StatusColor"/><local:FilterHeightConverter x:Key="FilterHeight"/><DataTemplate x:Key="FolderOption"><TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis"/></DataTemplate><DataTemplate x:Key="SortOption"><TextBlock Text="{Binding Label}"/></DataTemplate>
     </ResourceDictionary>
   </Window.Resources>
+  <Window.CommandBindings><CommandBinding Command="ApplicationCommands.Help" Executed="ShowHelp"/></Window.CommandBindings>
+  <Window.InputBindings><KeyBinding Key="F1" Command="ApplicationCommands.Help"/></Window.InputBindings>
   <Grid x:Name="ClientLayout">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Border BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="20,16">
           <StackPanel>
             <DockPanel>
+              <Button x:Name="HelpButton" DockPanel.Dock="Right" Content="?" Command="ApplicationCommands.Help" Style="{StaticResource CleanerButton}" Width="30" Height="30" Padding="0" FontWeight="Bold" FontSize="17" ToolTip="사용 방법 (F1)" AutomationProperties.Name="사용 방법"/>
               <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="메일 클리너" FontSize="20" FontWeight="Bold"/><TextBlock Text="WPF · 사내 Exchange" Style="{StaticResource MutedText}" Margin="12,5,0,0"/></StackPanel>
             </DockPanel>
             <WrapPanel Margin="0,12,0,0">
               <Button Style="{StaticResource CleanerButton}" Content="Windows 계정으로 연결" Command="{Binding ConnectCommand}" Padding="10,5" FontSize="12" Margin="0,0,8,0"/>
-              <Button Style="{StaticResource CleanerButton}" Content="EWS 로그인 정보" Command="{Binding LoginCommand}" Padding="10,5" FontSize="12" Margin="0,0,16,0"/>
+              <Button Style="{StaticResource CleanerButton}" Content="회사 계정으로 연결" Command="{Binding LoginCommand}" Padding="10,5" FontSize="12" Margin="0,0,8,0"/>
+              <Button Style="{StaticResource CleanerButton}" Content="서버 연결 진단" Command="{Binding DiagnoseCommand}" Padding="10,5" FontSize="12" Margin="0,0,16,0"/>
               <CheckBox Content="변경 작업 허용" IsChecked="{Binding AllowChanges}" IsEnabled="{Binding CanChangePermission}" VerticalAlignment="Center" FontSize="12"/>
             </WrapPanel>
           </StackPanel>
@@ -47,6 +51,7 @@
               <TextBlock Text="{Binding SearchHint}" Style="{StaticResource MutedText}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="740"/>
             </WrapPanel>
             <Border Margin="0,14,0,0" CornerRadius="9" Padding="12,10" Background="{Binding Status, Converter={StaticResource StatusColor}}"><TextBlock Text="{Binding Status}" Foreground="{Binding Status, Converter={StaticResource StatusColor}, ConverterParameter=Foreground}" TextWrapping="Wrap" d:Text="EWS 연결을 먼저 완료해 주세요."/></Border>
+            <Expander Header="연결 진단 정보" Visibility="{Binding HasDiagnostic, Converter={StaticResource BoolVisibility}}" Margin="0,6,0,0"><StackPanel><TextBox Text="{Binding DiagnosticText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" MaxHeight="130" VerticalScrollBarVisibility="Auto"/><Button Content="진단 정보 복사" Click="CopyDiagnostic" HorizontalAlignment="Left" Margin="0,4,0,0"/></StackPanel></Expander>
             <Border CornerRadius="3" Margin="0,9,0,0" Background="#DBE7F3" Visibility="{Binding Busy, Converter={StaticResource BoolVisibility}}"><ProgressBar Height="6" BorderThickness="0" Foreground="#0F6CBD" Background="Transparent" Minimum="0" Maximum="100" Value="{Binding Percent, Mode=OneWay}" IsIndeterminate="{Binding Indeterminate}"/></Border>
           </StackPanel>
           </ScrollViewer>

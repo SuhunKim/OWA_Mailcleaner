@@ -16,6 +16,7 @@ public sealed class MainViewModel : Observable, IDisposable
     readonly IUserDialogs dialogs;
     readonly IUserSettingsStore settingsService;
     readonly Func<NetworkCredential?, EwsTransport> createTransport;
+    readonly Func<CancellationToken, Task<ConnectionDiagnostic>> probeConnection;
     readonly SearchSession session = new();
     UserSettings settings = new();
     EwsTransport? transport;
@@ -32,16 +33,18 @@ public sealed class MainViewModel : Observable, IDisposable
     SearchCriteria? previousCriteria;
     public AsyncCommand ConnectCommand { get; }
     public AsyncCommand LoginCommand { get; }
+    public AsyncCommand DiagnoseCommand { get; }
     public AsyncCommand SearchCommand { get; }
     public AsyncCommand ExecuteCommand { get; }
     public RelayCommand StopCommand { get; }
     public RelayCommand SelectAllCommand { get; }
     public RelayCommand ClearSelectionCommand { get; }
-    public MainViewModel(IUserDialogs dialogs, IUserSettingsStore? settingsStore = null, Func<NetworkCredential?, EwsTransport>? transportFactory = null)
+    public MainViewModel(IUserDialogs dialogs, IUserSettingsStore? settingsStore = null, Func<NetworkCredential?, EwsTransport>? transportFactory = null, Func<CancellationToken, Task<ConnectionDiagnostic>>? probe = null)
     {
         this.dialogs = dialogs;
         settingsService = settingsStore ?? new SettingsService();
         createTransport = transportFactory ?? new AuthenticationService().Create;
+        probeConnection = probe ?? ConnectionProbe.RunAsync;
         settings = settingsService.Load();
         mode = Modes[0];
         selectedSort = SortOptions[0];
@@ -49,6 +52,7 @@ public sealed class MainViewModel : Observable, IDisposable
         keyword = "일보"; start = today.AddDays(-29); end = today;
         ConnectCommand = new(() => ConnectAsync(null), () => !Busy, Failure);
         LoginCommand = new(async () => { var credential = dialogs.Credentials(); if (credential != null) await ConnectAsync(credential); }, () => !Busy, Failure);
+        DiagnoseCommand = new(DiagnoseAsync, () => !Busy, Failure);
         SearchCommand = new(SearchAsync, () => !Busy && Connected && Folder != null && ValidDates, Failure);
         ExecuteCommand = new(ExecuteAsync, () => ExecutionDisabledReason.Length == 0, Failure);
         StopCommand = new(() => { cancellation?.Cancel(); Status = "중단 요청 · 전송한 변경 요청은 응답 후 멈춥니다"; }, () => Busy && cancellation?.IsCancellationRequested == false);
@@ -124,6 +128,10 @@ public sealed class MainViewModel : Observable, IDisposable
     public bool ReportExpanded { get => reportExpanded; set => Set(ref reportExpanded, value); }
     string status = "현재 Windows 계정으로 연결을 누르세요 · 기본 처리 방식: 조회만";
     public string Status { get => status; private set => Set(ref status, value); }
+    string diagnosticText = "";
+    public string DiagnosticText { get => diagnosticText; private set { Set(ref diagnosticText, value); Notify(nameof(HasDiagnostic)); } }
+    public bool HasDiagnostic => DiagnosticText.Length > 0;
+    string authenticationMode = "None";
     string summary = "";
     public string ResultSummary { get => summary; private set => Set(ref summary, value); }
     double percent;
@@ -154,7 +162,7 @@ public sealed class MainViewModel : Observable, IDisposable
     {
         Notify(nameof(Connected)); Notify(nameof(CanChangePermission)); Notify(nameof(ExecutionDisabledReason)); Notify(nameof(SelectionSummary));
         Notify(nameof(CanChooseFolder)); Notify(nameof(CanEmptyDeleted)); Notify(nameof(ExecuteLabel)); Notify(nameof(SearchHint)); Notify(nameof(ResultCountSummary)); Notify(nameof(EmptyMessage));
-        ConnectCommand?.Refresh(); LoginCommand?.Refresh(); SearchCommand?.Refresh(); ExecuteCommand?.Refresh(); StopCommand?.Refresh(); SelectAllCommand?.Refresh(); ClearSelectionCommand?.Refresh();
+        ConnectCommand?.Refresh(); LoginCommand?.Refresh(); DiagnoseCommand?.Refresh(); SearchCommand?.Refresh(); ExecuteCommand?.Refresh(); StopCommand?.Refresh(); SelectAllCommand?.Refresh(); ClearSelectionCommand?.Refresh();
     }
     void SelectionChanged(object? sender, PropertyChangedEventArgs e) { if (!changingSelection && e.PropertyName == nameof(MailItem.Selected)) Refresh(); }
     void SetSelection(bool selected)
@@ -171,6 +179,8 @@ public sealed class MainViewModel : Observable, IDisposable
     public async Task ConnectAsync(NetworkCredential? credentials)
     {
         if (Busy) throw new EwsException("작업이 진행 중입니다");
+        authenticationMode = credentials == null ? "Windows" : "Explicit";
+        DiagnosticText = "";
         Begin(); session.Invalidate(); ClearMails(); Folders.Clear(); Folder = null;
         if (transport != null) { transport.AuthenticationLost -= AuthLost; transport.Dispose(); }
         transport = createTransport(credentials); transport.AuthenticationLost += AuthLost;
@@ -187,6 +197,19 @@ public sealed class MainViewModel : Observable, IDisposable
             Status = $"EWS 연결 성공 · 폴더 {Folders.Count:N0}개 · { (allowChanges ? "변경 작업 허용" : "조회 전용") }";
         }
         catch { transport.AllowChanges = false; throw; }
+        finally { EndWork(); }
+    }
+    public async Task DiagnoseAsync()
+    {
+        if (Busy) return;
+        Begin(); DiagnosticText = "";
+        try
+        {
+            Status = "익명 EWS 연결 진단 중 · 계정 전송 없음 · 메일 변경 없음";
+            var result = await probeConnection(cancellation!.Token);
+            DiagnosticText = result.Report + "\nMode: AnonymousProbe";
+            Status = result.Guidance;
+        }
         finally { EndWork(); }
     }
     public async Task SearchAsync()
@@ -224,6 +247,8 @@ public sealed class MainViewModel : Observable, IDisposable
     void UpdateProgress(WorkProgress p) { if (!Busy) return; Status = p.Status; Indeterminate = p.Total <= 0; Percent = p.Total > 0 ? Math.Clamp(p.Completed * 100d / p.Total, 0, 100) : 0; }
     void Failure(Exception ex)
     {
+        if (ex is EwsConnectionException connection)
+            DiagnosticText = connection.Diagnostic.Report + "\nMode: " + authenticationMode;
         Status = ex switch { OperationCanceledException => "요청을 중단했습니다. 실행하려면 다시 검색하세요", EwsException e => e.Code, HttpRequestException => "회사 EWS 네트워크·TLS 연결 실패 · 사내망/VPN을 확인하세요", _ => $"작업 실패 ({ex.GetType().Name})" };
         Refresh();
     }
