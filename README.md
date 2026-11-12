@@ -15,7 +15,7 @@ For Groupware Mail Management
 | `OWA/OwaDesktopProbe` | 연결 진단용 프로브 |
 | `SCH/SchMailCleaner` | 순천향 그룹웨어(`hg.sch.ac.kr`)용 독립 EXE. 별개 프로그램 |
 | `docs/` | 설계·인수인계 문서 |
-| `_local/` | 로컬 전용(git 제외): 공용 git 저장소, 백업, 이전 사본 |
+| `_local/` | 로컬 전용(git 제외): `MailCleanerBase.git`(이 저장소의 git 본체, 삭제 금지), `_archive/`(구자료 압축본. 내용·복원 방법은 [docs/local-archive-index.md](docs/local-archive-index.md)) |
 
 ## 빌드
 
