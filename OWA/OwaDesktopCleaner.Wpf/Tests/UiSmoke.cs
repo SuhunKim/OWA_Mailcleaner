@@ -29,11 +29,29 @@ internal static class UiSmoke
                 try
                 {
                     Directory.CreateDirectory(output);
-                    using var vm = new MainViewModel(new Dialogs(), new MemorySettings(), _ => new(new HttpClient(new MockEws())));
+                    using var vm = new MainViewModel(new Dialogs(), new MemorySettings(), _ => new(new HttpClient(new MockEws())), _ => Task.FromResult(new ConnectionDiagnostic("Authentication", "ChallengeObserved", "EWS 서버 도달 · 모의 진단", 401, "Negotiate,NTLM")));
                     var window = new MainWindow(_ => vm);
                     window.Show(); await Settle(window);
                     Require(window.WindowStyle == WindowStyle.SingleBorderWindow && window.ResizeMode == ResizeMode.CanResize, "native title bar and resizable standalone window");
                     Capture(window, output, "wpf-initial.png");
+                    var helpButton = (Button)window.FindName("HelpButton");
+                    var helpCommand = (System.Windows.Input.RoutedCommand)helpButton.Command;
+                    helpCommand.Execute(null, helpButton); await Settle(window);
+                    var help = app.Windows.OfType<HelpWindow>().Single();
+                    Require(help.IsLoaded && help.Owner == window && !vm.Connected, "help opens without connecting");
+                    helpCommand.Execute(null, helpButton);
+                    Require(app.Windows.OfType<HelpWindow>().Count() == 1, "help reuses existing window");
+                    Require(Children<Expander>(help).Count() == 6, "help chapters rendered");
+                    Capture(help, output, "wpf-help.png");
+                    help.Width = help.MinWidth; help.Height = help.MinHeight; await Settle(help);
+                    var helpClose = (Button)help.FindName("HelpCloseButton");
+                    var closePosition = helpClose.TranslatePoint(new Point(0, 0), (FrameworkElement)help.Content);
+                    Require(closePosition.Y + helpClose.ActualHeight <= ((FrameworkElement)help.Content).ActualHeight, "help close remains visible at minimum size");
+                    Capture(help, output, "wpf-help-minimum.png");
+                    helpClose.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    helpCommand.Execute(null, helpButton); await Settle(window);
+                    app.Windows.OfType<HelpWindow>().Single().Close();
+                    Require(window.InputBindings.OfType<System.Windows.Input.KeyBinding>().Any(x => x.Key == System.Windows.Input.Key.F1), "F1 help shortcut");
                     await vm.ConnectAsync(null); await vm.SearchAsync(); await Settle(window);
                     Require(vm.Connected && vm.Mails.Count == 3 && vm.AllowChanges, "mock connection/search");
                     var radio = Children<RadioButton>(window).Single(x => (string)x.Content == "일반 첨부파일 삭제");
@@ -76,6 +94,13 @@ internal static class UiSmoke
                     await Settle(window); Capture(window, output, "wpf-minimum.png");
                     AssertClientBounds(client, footer);
                     await vm.SearchAsync(); Require(!vm.ReportVisible, "new search hides report");
+                    await vm.DiagnoseAsync(); await Settle(window);
+                    Require(vm.HasDiagnostic && vm.DiagnosticText.Contains("AnonymousProbe") && vm.Connected, "anonymous diagnosis does not grant or revoke mailbox authentication");
+                    var diagnostic = Children<Expander>(window).Single(x => (string)x.Header == "연결 진단 정보");
+                    window.Width = originalWidth; window.Height = originalHeight;
+                    diagnostic.IsExpanded = true; await Settle(window); diagnostic.BringIntoView(); await Settle(window);
+                    Require(Children<TextBox>(window).Any(x => x.IsReadOnly && x.Text == vm.DiagnosticText), "safe diagnostic text binding");
+                    Capture(window, output, "wpf-diagnostic.png");
                     window.Close();
                     File.WriteAllText(Path.Combine(output, "ui-checks.txt"), "PASS: real Window, theme, radio binding, dropdown sort, date popup, checkbox selection, mock processing report, full-client layout, resizing, native maximize, minimum-size footer bounds and report reset. Mock HTTP only; no server/credential access.");
                     Console.WriteLine("PASS real WPF UI checks; mock HTTP only"); exit = 0;
