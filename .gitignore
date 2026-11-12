@@ -8,3 +8,10 @@ _backup/
 !.env.example
 *.pst
 *.ost
+publish/
+_local/
+_bin/
+node_modules/
+OWA/OwaDesktopProbe/artifacts/
+OWA/OwaDesktopProbe/test-runs/
+OWA/OwaDesktopProbe/verified-build/

@@ -1,6 +1,6 @@
 name: CI
 
-# 레포 루트에서 관리하는 모든 하위 프로젝트를 빌드/테스트한다.
+# 레포 루트에서 관리하는 모든 하위 프로젝트(OWA/*, SCH/*)를 빌드/테스트한다.
 # CD(배포)는 별도 워크플로우로 추가 예정이며, 이 파일은 검증만 수행한다.
 on:
   push:
@@ -21,11 +21,11 @@ env:
 jobs:
   # ---- Node 테스트 (사용자 스크립트 / 데스크톱 JS 로직) ----
   js-web:
-    name: JS tests (Outlook_Mail_Cleaner_Web)
+    name: JS tests (OWA/Outlook_Mail_Cleaner_Web)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Outlook_Mail_Cleaner_Web
+        working-directory: OWA/Outlook_Mail_Cleaner_Web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,11 +34,11 @@ jobs:
       - run: npm test
 
   js-v1-1:
-    name: JS tests (Outlook_Mail_Cleaner_v1.1)
+    name: JS tests (OWA/Outlook_Mail_Cleaner_v1.1)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Outlook_Mail_Cleaner_v1.1
+        working-directory: OWA/Outlook_Mail_Cleaner_v1.1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,7 +49,7 @@ jobs:
       - run: npm test
 
   desktop-cleaner:
-    name: OwaDesktopCleaner (test + build)
+    name: OWA/OwaDesktopCleaner (test + build)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,9 +57,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: OwaDesktopCleaner/tests/package-lock.json
+          cache-dependency-path: OWA/OwaDesktopCleaner/tests/package-lock.json
       - name: JS tests
-        working-directory: OwaDesktopCleaner/tests
+        working-directory: OWA/OwaDesktopCleaner/tests
         run: |
           npm ci
           node --test *.test.cjs
@@ -67,14 +67,14 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Build
-        run: dotnet build OwaDesktopCleaner/OwaDesktopCleaner.csproj -c Release
+        run: dotnet build OWA/OwaDesktopCleaner/OwaDesktopCleaner.csproj -c Release
 
   desktop-cleaner-wpf:
-    name: OwaDesktopCleaner.Wpf (build + test)
+    name: OWA/OwaDesktopCleaner.Wpf (build + test)
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: OwaDesktopCleaner.Wpf
+        working-directory: OWA/OwaDesktopCleaner.Wpf
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -89,7 +89,7 @@ jobs:
         run: dotnet run --project ConnectionCheck -c Release --no-build -- --self-test
 
   desktop-probe:
-    name: OwaDesktopProbe (test + build)
+    name: OWA/OwaDesktopProbe (test + build)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -97,17 +97,17 @@ jobs:
         with:
           node-version: 22
       - name: JS tests
-        working-directory: OwaDesktopProbe
+        working-directory: OWA/OwaDesktopProbe
         run: node --test tests/probe.test.cjs
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
       - name: Build
-        run: dotnet build OwaDesktopProbe/OwaDesktopProbe.csproj -c Release
+        run: dotnet build OWA/OwaDesktopProbe/OwaDesktopProbe.csproj -c Release
 
   # ---- .NET (WPF) ----
   controls-web:
-    name: Controls (Outlook_Mail_Cleaner_Web)
+    name: Controls (OWA/Outlook_Mail_Cleaner_Web)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -115,12 +115,12 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Build
-        run: dotnet build Outlook_Mail_Cleaner_Web/OwaMailCleaner.Controls.sln -c Release
+        run: dotnet build OWA/Outlook_Mail_Cleaner_Web/OwaMailCleaner.Controls.sln -c Release
       - name: Controls tests
-        run: dotnet run --project Outlook_Mail_Cleaner_Web/OwaMailCleaner.Controls.Tests -c Release --no-build -f net8.0-windows
+        run: dotnet run --project OWA/Outlook_Mail_Cleaner_Web/OwaMailCleaner.Controls.Tests -c Release --no-build -f net8.0-windows
 
   controls-v1-1:
-    name: Controls (Outlook_Mail_Cleaner_v1.1)
+    name: Controls (OWA/Outlook_Mail_Cleaner_v1.1)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -128,12 +128,12 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Build
-        run: dotnet build Outlook_Mail_Cleaner_v1.1/OwaMailCleaner.Controls.sln -c Release
+        run: dotnet build OWA/Outlook_Mail_Cleaner_v1.1/OwaMailCleaner.Controls.sln -c Release
       - name: Controls tests
-        run: dotnet run --project Outlook_Mail_Cleaner_v1.1/OwaMailCleaner.Controls.Tests -c Release --no-build -f net8.0-windows
+        run: dotnet run --project OWA/Outlook_Mail_Cleaner_v1.1/OwaMailCleaner.Controls.Tests -c Release --no-build -f net8.0-windows
 
   sch-mail-cleaner:
-    name: SchMailCleaner (build)
+    name: SCH/SchMailCleaner (build)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -141,4 +141,4 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Build
-        run: dotnet build SchMailCleaner/SchMailCleaner.csproj -c Release
+        run: dotnet build SCH/SchMailCleaner/SchMailCleaner.csproj -c Release
