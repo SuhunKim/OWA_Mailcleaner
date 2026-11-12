@@ -1,0 +1,144 @@
+name: CI
+
+# 레포 루트에서 관리하는 모든 하위 프로젝트(OWA/*, SCH/*)를 빌드/테스트한다.
+# CD(배포)는 별도 워크플로우로 추가 예정이며, 이 파일은 검증만 수행한다.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  # ---- Node 테스트 (사용자 스크립트 / 데스크톱 JS 로직) ----
+  js-web:
+    name: JS tests (OWA/Outlook_Mail_Cleaner_Web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: OWA/Outlook_Mail_Cleaner_Web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+
+  js-v1-1:
+    name: JS tests (OWA/Outlook_Mail_Cleaner_v1.1)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: OWA/Outlook_Mail_Cleaner_v1.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # tests/browser-smoke.cjs 는 playwright + 설치된 Edge가 필요하고
+      # package.json 의 npm test 에도 포함되지 않으므로 CI에서 제외한다.
+      - run: npm test
+
+  desktop-cleaner:
+    name: OWA/OwaDesktopCleaner (test + build)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: OWA/OwaDesktopCleaner/tests/package-lock.json
+      - name: JS tests
+        working-directory: OWA/OwaDesktopCleaner/tests
+        run: |
+          npm ci
+          node --test *.test.cjs
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build
+        run: dotnet build OWA/OwaDesktopCleaner/OwaDesktopCleaner.csproj -c Release
+
+  desktop-cleaner-wpf:
+    name: OWA/OwaDesktopCleaner.Wpf (build + test)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: OWA/OwaDesktopCleaner.Wpf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build
+        run: dotnet build OwaDesktopCleaner.Wpf.sln -c Release -m:1
+      # 모의 HTTP만 사용하며 실제 서버·메일함에 접속하지 않는다.
+      - name: Tests
+        run: dotnet run --project Tests -c Release --no-build
+      - name: ConnectionCheck self-test
+        run: dotnet run --project ConnectionCheck -c Release --no-build -- --self-test
+
+  desktop-probe:
+    name: OWA/OwaDesktopProbe (test + build)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: JS tests
+        working-directory: OWA/OwaDesktopProbe
+        run: node --test tests/probe.test.cjs
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build
+        run: dotnet build OWA/OwaDesktopProbe/OwaDesktopProbe.csproj -c Release
+
+  # ---- .NET (WPF) ----
+  controls-web:
+    name: Controls (OWA/Outlook_Mail_Cleaner_Web)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build
+        run: dotnet build OWA/Outlook_Mail_Cleaner_Web/OwaMailCleaner.Controls.sln -c Release
+      - name: Controls tests
+        run: dotnet run --project OWA/Outlook_Mail_Cleaner_Web/OwaMailCleaner.Controls.Tests -c Release --no-build -f net8.0-windows
+
+  controls-v1-1:
+    name: Controls (OWA/Outlook_Mail_Cleaner_v1.1)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build
+        run: dotnet build OWA/Outlook_Mail_Cleaner_v1.1/OwaMailCleaner.Controls.sln -c Release
+      - name: Controls tests
+        run: dotnet run --project OWA/Outlook_Mail_Cleaner_v1.1/OwaMailCleaner.Controls.Tests -c Release --no-build -f net8.0-windows
+
+  sch-mail-cleaner:
+    name: SCH/SchMailCleaner (build)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build
+        run: dotnet build SCH/SchMailCleaner/SchMailCleaner.csproj -c Release
