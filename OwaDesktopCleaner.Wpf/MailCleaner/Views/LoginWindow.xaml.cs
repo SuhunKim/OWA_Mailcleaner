@@ -15,7 +15,7 @@ public partial class LoginWindow : Window
         try
         {
             if (Remember.IsChecked == true) WindowsCredentialStore.Save(User.Text.Trim(), Secret.Password);
-            Credential = new NetworkCredential(User.Text.Trim(), Secret.SecurePassword);
+            Credential = AuthenticationService.ExplicitCredential(User.Text, Secret.SecurePassword);
             DialogResult = true;
         }
         catch { Notice.Text = "자격 증명을 저장하지 못했습니다. 저장 선택을 해제하거나 Windows 정책을 확인하세요."; }

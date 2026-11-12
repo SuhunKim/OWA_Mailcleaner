@@ -11,6 +11,18 @@ namespace MailCleaner.Views;
 
 public partial class MainWindow : Window, IUserDialogs
 {
+    HelpWindow? helpWindow;
+    void ShowHelp(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+    {
+        if (helpWindow != null)
+        {
+            if (helpWindow.WindowState == WindowState.Minimized) helpWindow.WindowState = WindowState.Normal;
+            helpWindow.Activate(); return;
+        }
+        helpWindow = new HelpWindow { Owner = this };
+        helpWindow.Closed += (_, _) => helpWindow = null;
+        helpWindow.Show();
+    }
     public MainWindow() : this(null) { }
     public MainWindow(Func<IUserDialogs, MainViewModel>? viewModelFactory)
     {
@@ -38,6 +50,12 @@ public partial class MainWindow : Window, IUserDialogs
         if (DataContext is MainViewModel vm) vm.DateTextEdited(Valid(StartPicker) && Valid(EndPicker));
     }
     void CloseWindow(object sender, RoutedEventArgs e) => Close();
+    void CopyDiagnostic(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel { HasDiagnostic: true } vm) return;
+        try { Clipboard.SetText(vm.DiagnosticText); }
+        catch { MessageBox.Show(this, "클립보드를 사용할 수 없습니다. 진단 텍스트를 선택해 복사하세요."); }
+    }
     void ApplySort()
     {
         if (DataContext is not MainViewModel vm) return;
